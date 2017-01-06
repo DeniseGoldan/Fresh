@@ -29,9 +29,11 @@ int numberOfErrors = 0;
 
 /* TOKENS */
 %token <string_val>QUOTE <double_val>REAL <int_val> INTEGER
-%token PLU MIN TIM DIV MOD INT DOUBLE STRING
+%token PLU MIN TIM DIV MOD INT DOUBLE STRING CONST
 %token EQU <string_val>ID
 %token CONSTANT_DECLARE NORMAL_DECLARE
+%type <string_val>variable_type
+%type <int_val>int_expression
 
 %%
 
@@ -56,15 +58,35 @@ declaration
       ;
 
 declaration_statement
-      : variable_type ID 
+      :  variable_type ID 
       {
+        strcpy(variableList[numberOfDeclaredVariables].id,$2);
+        strcpy(variableList[numberOfDeclaredVariables].type,$1);
+        variableList[numberOfDeclaredVariables].initialized=0;
+        variableList[numberOfDeclaredVariables].constant=0;
+        variableList[numberOfDeclaredVariables].value=NULL;
+      }
+      | CONST variable_type ID EQU int_expression
+      {
+        if (strcmp($2,"int")==0)
+        {
+            strcpy(variableList[numberOfDeclaredVariables].id,$3);
+            strcpy(variableList[numberOfDeclaredVariables].type,$2);
+            variableList[numberOfDeclaredVariables].initialized=1;
+            variableList[numberOfDeclaredVariables].constant=1;
+            variableList[numberOfDeclaredVariables].value=$5;
+        }
+        else
+        {
+            yyerror("declared const is not integer");
+        }
       }
       ;
 
 variable_type
-      : DOUBLE
-      | STRING
-      | INT
+      : DOUBLE {$$="double";}
+      | STRING {$$="string";}
+      | INT {$$="int";}
       ;
 
 %%
