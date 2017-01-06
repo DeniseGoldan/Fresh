@@ -89,6 +89,10 @@ variable_type
       | INT {$$="int";}
       ;
 
+int_expression:
+    INTEGER {$$=$<int_val>1;}
+    ;
+
 %%
 int yyerror(const char * errorName)
 {
