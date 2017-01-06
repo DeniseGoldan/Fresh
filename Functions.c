@@ -1,7 +1,7 @@
 #include "Functions.h"
 
 struct Variable variableList[100];
-extern int numberOfDeclaredVariables = 0;
+int numberOfDeclaredVariables = 0;
 char printBuffer[5000];
 
 int isReservedWord(const char *nume)
