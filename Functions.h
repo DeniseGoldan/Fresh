@@ -41,6 +41,7 @@ int isReservedWord(const char *nume)
 
     return 0;
 }
+
 int isDeclared(const char *id)
 {
 
@@ -55,20 +56,20 @@ int isDeclared(const char *id)
     return 0;
 }
 
-int printTable()
+int printVariableList()
 {
     int i=0;
     for (i=0; i < numberOfDeclaredVariables; ++i)
     {
         printf("---------NEW VARIABLE---------\n");
-        printf("ID:%s \n",variableList[i].id);
-        printf("TYPE:%s \n",variableList[i].type);
+        printf("ID: %s \n",variableList[i].id);
+        printf("TYPE: %s \n",variableList[i].type);
 
         if (NULL != variableList[i].value)
         {
             if (strcmp(variableList[i].type,"int")==0)
             {
-                printf("VALUE:%d \n",*(int*)(variableList[i].value));
+                printf("VALUE: %d \n",*(int*)(variableList[i].value));
             }
         }
         else 
@@ -78,13 +79,13 @@ int printTable()
 
         if (1 == variableList[i].constant)
         {
-            printf("CONSTANT :yes \n");
+            printf("CONSTANT: yes \n");
         }
         else
         {
             printf("CONSTANT: no \n");
         }
-        printf("--------------------------\n");
+        printf("------------------------------\n");
 
 
     }
@@ -106,11 +107,14 @@ int isInitialized(const char *id)
     }
     return 0;
 }
+
 int getVariableIndex(const char *id)
 {
     int i;
-    for (i = 0; i < numberOfDeclaredVariables; i++) {
-        if (0 == strcmp(id, variableList[i].id)) {
+    for (i = 0; i < numberOfDeclaredVariables; i++)
+     {
+        if (0 == strcmp(id, variableList[i].id)) 
+        {
             return i;
         }
     }

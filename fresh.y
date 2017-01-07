@@ -1,5 +1,6 @@
 %{
 #include "Functions.h"
+#include <stdlib.h>
 
 extern FILE* yyin;
 extern char* yytext;
@@ -28,10 +29,13 @@ int numberOfErrors = 0;
 %start test_program
 
 /* TOKENS */
-%token <string_val>QUOTE <double_val>REAL <int_val> INTEGER
-%token PLU MIN TIM DIV MOD INT DOUBLE STRING CONST
-%token EQU <string_val>ID
-%token CONSTANT_DECLARE NORMAL_DECLARE
+%token <string_val>QUOTE 
+%token <string_val>ID
+%token <double_val>REAL
+%token <int_val> INTEGER
+%token PLU MIN TIM DIV MOD 
+%token INT DOUBLE STRING CONST
+%token EQU 
 %type <string_val>variable_type
 %type <int_val>int_expression
 
@@ -39,7 +43,7 @@ int numberOfErrors = 0;
 
 /* The program */
 
-test_program : instruction_list { checkCorectness(); printTable();}
+test_program : instruction_list { checkCorectness(); printVariableList();}
              ;
 
 instruction_list
@@ -60,24 +64,32 @@ declaration
 declaration_statement
       :  variable_type ID 
       {
-        strcpy(variableList[numberOfDeclaredVariables].id,$2);
-        strcpy(variableList[numberOfDeclaredVariables].type,$1);
-        variableList[numberOfDeclaredVariables].constant=0;
-        variableList[numberOfDeclaredVariables].value=NULL;
+          if (isDeclared($2))
+          {
+                yyerror("already declared");         
+          }
+           strcpy(variableList[numberOfDeclaredVariables].id,$2);
+           strcpy(variableList[numberOfDeclaredVariables].type,$1);
+           variableList[numberOfDeclaredVariables].constant=0;
+           variableList[numberOfDeclaredVariables].value=NULL;
       }
       | CONST variable_type ID EQU int_expression
       {
-        strcpy(variableList[numberOfDeclaredVariables].id,$3);
-        strcpy(variableList[numberOfDeclaredVariables].type,$2);
-        variableList[numberOfDeclaredVariables].constant=1;
-        variableList[numberOfDeclaredVariables].value=&$5;
+          if (isDeclared($3))
+          {
+                yyerror("already declared");         
+          }
+          strcpy(variableList[numberOfDeclaredVariables].id,$3);
+          strcpy(variableList[numberOfDeclaredVariables].type,$2);
+          variableList[numberOfDeclaredVariables].constant=1;
+          variableList[numberOfDeclaredVariables].value=&$5;
       }
       ;
 
 variable_type
-      : DOUBLE {$$="double";}
-      | STRING {$$="string";}
-      | INT {$$="int";}
+      : DOUBLE  { $$="double"; }
+      | STRING  { $$="string"; }
+      | INT     { $$="int"; }
       ;
 
 int_expression:
@@ -88,6 +100,7 @@ int_expression:
 int yyerror(const char * errorName)
 {
     printf("Error: %s at line: %d \n", errorName, yylineno);
+    exit(EXIT_FAILURE);
 }
 
 void checkCorectness()
