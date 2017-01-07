@@ -58,28 +58,34 @@ int isDeclared(const char *id)
 int printTable()
 {
     int i=0;
-    for (i=0;i<numberOfDeclaredVariables;i++)
+    for (i=0; i < numberOfDeclaredVariables; ++i)
     {
-        printf("id:%s type:%s ",variableList[i].id,variableList[i].type);
-        if (variableList[i].value!=NULL)
+        printf("---------NEW VARIABLE---------\n");
+        printf("ID:%s \n",variableList[i].id);
+        printf("TYPE:%s \n ",variableList[i].type);
+
+        if (NULL != variableList[i].value)
         {
             if (strcmp(variableList[i].type,"int")==0)
-                printf("value:%d",*(int*)(variableList[i].value));
+            {
+                printf("VALUE:%d \n",*(int*)(variableList[i].value));
+            }
         }
-        else
+        else 
         {
-            printf("value:not initialized ");
+            printf("VALUE: not initialized \n");
         }
 
-        if (variableList[i].constant==1)
+        if (1 == variableList[i].constant)
         {
-            printf("constant:yes");
+            printf("CONSTANT :yes \n");
         }
         else
         {
-            printf("constant:no");
+            printf("CONSTANT: no \n");
         }
-        printf("\n");
+        printf("--------------------------");
+
 
     }
 }
@@ -150,4 +156,3 @@ int max(int a, int b)
 }
 
 #endif //FUNCTIONS_H
-
