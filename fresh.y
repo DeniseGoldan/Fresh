@@ -39,7 +39,7 @@ int numberOfErrors = 0;
 
 /* The program */
 
-test_program : instruction_list { checkCorectness(); }
+test_program : instruction_list { checkCorectness(); printTable();}
              ;
 
 instruction_list
@@ -62,24 +62,15 @@ declaration_statement
       {
         strcpy(variableList[numberOfDeclaredVariables].id,$2);
         strcpy(variableList[numberOfDeclaredVariables].type,$1);
-        variableList[numberOfDeclaredVariables].initialized=0;
         variableList[numberOfDeclaredVariables].constant=0;
         variableList[numberOfDeclaredVariables].value=NULL;
       }
       | CONST variable_type ID EQU int_expression
       {
-        if (strcmp($2,"int")==0)
-        {
-            strcpy(variableList[numberOfDeclaredVariables].id,$3);
-            strcpy(variableList[numberOfDeclaredVariables].type,$2);
-            variableList[numberOfDeclaredVariables].initialized=1;
-            variableList[numberOfDeclaredVariables].constant=1;
-            variableList[numberOfDeclaredVariables].value=$5;
-        }
-        else
-        {
-            yyerror("declared const is not integer");
-        }
+        strcpy(variableList[numberOfDeclaredVariables].id,$3);
+        strcpy(variableList[numberOfDeclaredVariables].type,$2);
+        variableList[numberOfDeclaredVariables].constant=1;
+        variableList[numberOfDeclaredVariables].value=&$5;
       }
       ;
 
