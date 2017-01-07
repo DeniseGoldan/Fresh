@@ -62,7 +62,7 @@ int printTable()
     {
         printf("---------NEW VARIABLE---------\n");
         printf("ID:%s \n",variableList[i].id);
-        printf("TYPE:%s \n ",variableList[i].type);
+        printf("TYPE:%s \n",variableList[i].type);
 
         if (NULL != variableList[i].value)
         {
@@ -84,7 +84,7 @@ int printTable()
         {
             printf("CONSTANT: no \n");
         }
-        printf("--------------------------");
+        printf("--------------------------\n");
 
 
     }
