@@ -58,6 +58,7 @@ int isDeclared(const char *id)
 int printTable()
 {
     int i=0;
+<<<<<<< HEAD
     for (i=0; i < numberOfDeclaredVariables; ++i)
     {
         printf("---------NEW VARIABLE---------\n");
@@ -85,6 +86,30 @@ int printTable()
             printf("CONSTANT: no \n");
         }
         printf("--------------------------");
+=======
+    for (i=0;i<numberOfDeclaredVariables;i++)
+    {
+        printf("id:%s type:%s ",variableList[i].id,variableList[i].type);
+        if (variableList[i].value!=NULL)
+        {
+            if (strcmp(variableList[i].type,"int")==0)
+                printf("value:%d",*(int*)(variableList[i].value));
+        }
+        else
+        {
+            printf("value:not initialized ");
+        }
+
+        if (variableList[i].constant==1)
+        {
+            printf("constant:yes");
+        }
+        else
+        {
+            printf("constant:no");
+        }
+        printf("\n");
+>>>>>>> 869c7562be550f6fb1128962aea2c8c12f9f5886
 
     }
 }
