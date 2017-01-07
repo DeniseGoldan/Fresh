@@ -1,0 +1,86 @@
+// comment
+var a = 2;
+var b = 3 * 4 / (5 - 2);
+const var c = ~1 -(-1) +1 * (-3 + 4);
+const var d = a = b *= 1 * (2 + 3) / 4 == true && true;
+
+// selections
+a > b ?  (((printf(a)))) : printf(b);
+
+if ( x ==  121212 || a >= b + 5 && (x < 2 ||  (((((x - 3 > 33))))) || y < 5 + z)) 
+{
+	print(sum(a+b, 2));
+} else 
+{
+    print (sum(a-b, ((((2))))));
+}
+
+switch (random_number) 
+{
+	case 1: 
+		max(1,3);
+		break;
+	case 2:
+	case 3:
+		min(22,-22);
+	default:
+		gcd(33,55);
+		// ana are mere
+}
+
+// iterations
+while ( a <= b && 22 > 3 + a) 
+{
+	a++;
+	var gcd = gcd(b+4, a);
+}
+
+do 
+{
+	var i = 2;
+    i++;
+	var b = min_between_3(x+5, f(y+3) + 5, s);
+	i -= min_between_3(1,2,3);
+} while ( i <= 100);
+
+for (var i=0; i<=n; i++)
+{
+	print(i);
+}
+
+// Declaring and defining functions
+var function_with_four_param = function(var1, var2, var222, var3);
+
+var function_with_three_param = function(var1, var2, var3) 
+{ 
+	b *= c *= d;
+	// ana are mere
+    for (var i=0; i<=n; i++) 
+    {
+	    print(i);
+    }
+	// Apelare de functii
+	var sum = sum(sum(a+b), sum(c+d));
+	return sum(sum(a+b), sum(c+d));
+};
+
+// User defined objects
+var lalala = {
+	field_1 : 222222,
+	field_2 : 3, 
+	field_3 : true,
+	field_4 : false,
+	field_5 : 6666666,
+	field_6 : {
+		field_a : {
+			// obiect gol
+		}
+	},
+	field_7 : {
+		// obiect gol
+	},
+	field_8 : [1, "ana", [1, 2, 3]]
+};
+
+var noua_mea_variabila = new numar();
+
