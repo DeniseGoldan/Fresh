@@ -68,10 +68,11 @@
 
 \/\/[^\r\n]*[\r\n] { yylineno++; return COMMENT; }
 [0-9]+[\.]?[0-9]* { yylval = atoi(yytext); return NUMBER;}
-(\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') { return STRING; }
+(\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') { return QUOTE; }
 
 "const"[ ]+"var" { return CONST_VAR; } // I've used [ ]+ so that I cound add multiPLUe spaces
 "var" {return VAR; }
+"str" {return STR; }
 [a-zA-Z$_][a-zA-Z0-9$_]* { return ID;}
 
 [ \t] ;

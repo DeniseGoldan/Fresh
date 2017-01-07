@@ -10,7 +10,7 @@ int yyerror(const char * s);
 
 %}
 
-%token STRING ID NUMBER TRUE FALSE COMMENT
+%token QUOTE ID NUMBER TRUE FALSE COMMENT STR
 %token VAR CONST_VAR FUNCTION RETURN 
 %token IF ELSE SWITCH CASE DEFAULT WHILE FOR DO BREAK CONTINUE
 
@@ -45,6 +45,7 @@ instruction_list
 
 instruction
       : declaration ';'
+      | str_declaration ';'
       | expression ';'
       | flow_control
       | function_declaration ';'
@@ -52,6 +53,23 @@ instruction
       | object_definition ';'
       | DELETE ID ';'
       | COMMENT
+      ;
+
+
+str_declaration
+      : str_declarator
+      | str_declarator EQU str_expression
+      ;
+
+str_declarator
+      : STR ID
+      ;
+
+str_expression 
+      : QUOTE
+      | QUOTE PLU QUOTE
+      | QUOTE TIM NUMBER
+      | NUMBER TIM QUOTE
       ;
 
 /* Declaratii */
@@ -186,7 +204,7 @@ object_construction_expression
 
 atomic_expression
       : ID 
-      | STRING
+      | QUOTE
       | NUMBER 
       | TRUE
       | FALSE
@@ -291,7 +309,7 @@ object_field
 
 object_value
       : object
-      | STRING
+      | QUOTE
       | NUMBER
       | TRUE
       | FALSE

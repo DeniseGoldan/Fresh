@@ -84,3 +84,10 @@ var lalala = {
 
 var noua_mea_variabila = new numar();
 
+// Strings
+
+str ana = "Ana are mere";
+str banana = "Banananna";
+str florica = "Ana are mereeeee" + " si florica are nuiele";
+str florica = "Ana are mereeeee" * 10;
+str florica = 10 * "Ana are mereeeee";
