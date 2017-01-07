@@ -14,7 +14,6 @@ struct Variable
     char id[255];
     char type[255];
     void* value;
-    int initialized;
     int constant;
 };
 
@@ -55,6 +54,36 @@ int isDeclared(const char *id)
     }
     return 0;
 }
+
+int printTable()
+{
+    int i=0;
+    for (i=0;i<numberOfDeclaredVariables;i++)
+    {
+        printf("id:%s type:%s ",variableList[i].id,variableList[i].type);
+        if (variableList[i].value!=NULL)
+        {
+            if (strcmp(variableList[i].type,"int")==0)
+                printf("value:%d",*(int*)(variableList[i].value));
+        }
+        else
+        {
+            printf("value:not initialized ");
+        }
+
+        if (variableList[i].constant==1)
+        {
+            printf("constant:yes");
+        }
+        else
+        {
+            printf("constant:no");
+        }
+        printf("\n");
+
+    }
+}
+
 int isInitialized(const char *id)
 {
     int i;
@@ -62,7 +91,7 @@ int isInitialized(const char *id)
     {
         if (0 == strcmp(id, variableList[i].id))
         {
-            if (1 == variableList[i].initialized)
+            if (variableList[i].value!=NULL)
             {
                 return 1;
             }
