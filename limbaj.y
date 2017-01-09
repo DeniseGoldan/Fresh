@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include "Functions.h"
 
 extern FILE* yyin;
 extern char* yytext;
@@ -10,9 +11,20 @@ int yyerror(const char * s);
 
 %}
 
-%token QUOTE ID NUMBER TRUE FALSE COMMENT STR
-%token VAR CONST_VAR FUNCTION RETURN 
+%union 
+{
+      int integer;
+      char* string;
+      double real;
+}
+
+%token QUOTE ID REAL INTEGER TRUE FALSE COMMENT STR INT DOUBLE
+%token VAR CONST FUNCTION RETURN 
 %token IF ELSE SWITCH CASE DEFAULT WHILE FOR DO BREAK CONTINUE
+
+%type<string> variable_type
+%type<string> declarator
+%type<string> str_declarator
 
 %start start_program
 
@@ -36,10 +48,11 @@ int yyerror(const char * s);
 
 %%
 
-start_program : instruction_list;
+start_program : instruction_list {printVariableList();}
+              ;
 
 instruction_list 
-      : instruction_list instruction 
+      : instruction_list instruction
       | instruction
       ;
 
@@ -62,29 +75,47 @@ str_declaration
       ;
 
 str_declarator
-      : STR ID
+      : STR ID { if (isDeclared($<string>2))
+                                    yyerror("Already declared!");
+                              addToVariableList($<string>2,"string",0);
+                              $$=$<string>2;
+                        }
+      | CONST STR ID { if (isDeclared($<string>3))
+                                    yyerror("Already declared!");
+                              addToVariableList($<string>3,"string",0);
+                              $$=$<string>2;
+                        }
       ;
 
 str_expression 
       : QUOTE
       | QUOTE PLU QUOTE
-      | QUOTE TIM NUMBER
-      | NUMBER TIM QUOTE
+      | QUOTE TIM INTEGER
+      | INTEGER TIM QUOTE
       ;
 
 /* Declaratii */
 declaration
       : declarator
-      | declarator EQU expression 
+      | declarator EQU expression {}
       ;
 
 declarator
-      : variable_type ID 
+      : variable_type ID { if (isDeclared($<string>2))
+                                    yyerror("Already declared!");
+                              addToVariableList($<string>2,$1,0);
+                              $$=$<string>2;
+                        }
+      | CONST variable_type ID { if (isDeclared($<string>3))
+                                    yyerror("Already declared!");
+                              addToVariableList($<string>3,$2,1);
+                              $$=$<string>2;
+                        }
       ;
 
 variable_type
-      : CONST_VAR 
-      | VAR 
+      : INT       {$$="int";}
+      | DOUBLE    {$$="double";}
       ;
 
 /* Expressions */
@@ -205,7 +236,8 @@ object_construction_expression
 atomic_expression
       : ID 
       | QUOTE
-      | NUMBER 
+      | INTEGER
+      | REAL 
       | TRUE
       | FALSE
       | '(' expression ')'
@@ -310,7 +342,8 @@ object_field
 object_value
       : object
       | QUOTE
-      | NUMBER
+      | INTEGER
+      | REAL
       | TRUE
       | FALSE
       | '[' expression_list ']'
@@ -363,6 +396,7 @@ return
 int yyerror(const char * s) 
 {
   printf("Error: %s at line: %d \n",s, yylineno);
+  exit(1);
 }
 
 

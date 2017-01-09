@@ -67,14 +67,17 @@
 "return" { return RETURN; }
 
 \/\/[^\r\n]*[\r\n] { yylineno++; return COMMENT; }
-[0-9]+[\.]?[0-9]* { yylval = atoi(yytext); return NUMBER;}
-(\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') { return QUOTE; }
+[0-9]+ {yylval.integer = atoi(yytext); return INTEGER;}
+[0-9]+[\.]?[0-9]* { yylval.real = atoi(yytext); return REAL;}
+(\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') {return QUOTE; }
 
-"const"[ ]+"var" { return CONST_VAR; } // I've used [ ]+ so that I cound add multiPLUe spaces
+"const" { return CONST; } 
 "var" {return VAR; }
 "str" {return STR; }
-[a-zA-Z$_][a-zA-Z0-9$_]* { return ID;}
+"int" {return INT;}
+"double" {return DOUBLE;}
+[a-zA-Z$_][a-zA-Z0-9$_]* {yylval.string=strdup(yytext); return ID;}
 
-[ \t] ;
+[ \t] {};
 \n {yylineno++;}
 . {return yytext[0];}
