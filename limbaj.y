@@ -21,10 +21,15 @@ int yyerror(const char * s);
 %token QUOTE ID REAL INTEGER TRUE FALSE COMMENT STR INT DOUBLE
 %token VAR CONST FUNCTION RETURN 
 %token IF ELSE SWITCH CASE DEFAULT WHILE FOR DO BREAK CONTINUE
+%token OBJECT
 
 %type<string> variable_type
 %type<string> declarator
 %type<string> str_declarator
+%type<integer> postfix_expression shifting_expression 
+%type<integer>additive_expression multiplicative_expression unary_expression
+%type<integer> atomic_expression conditional_expression logical_expression_or_or logical_expression_and_and logical_expression_or
+%type<integer> expression logical_expression_xor logical_expression_and equality_expression relational_expression
 
 %start start_program
 
@@ -45,6 +50,7 @@ int yyerror(const char * s);
 %left DOT
 %nonassoc NEQU_UNAR NOT_UNAR
 %nonassoc '(' ')'
+
 
 %%
 
@@ -97,7 +103,12 @@ str_expression
 /* Declaratii */
 declaration
       : declarator
-      | declarator EQU expression {}
+      | declarator EQU expression {
+                                    int index=getVariableIndex($1);
+                                    variableList[index].initialized=1;
+                                    variableList[index].value=(int*)malloc(sizeof(int));
+                                    *((int*)(variableList[index].value))=$3;
+                                    }
       ;
 
 declarator
@@ -109,7 +120,7 @@ declarator
       | CONST variable_type ID { if (isDeclared($<string>3))
                                     yyerror("Already declared!");
                               addToVariableList($<string>3,$2,1);
-                              $$=$<string>2;
+                              $$=$<string>3;
                         }
       ;
 
@@ -125,10 +136,10 @@ expression_list
       ;
 
 expression
-      : postfix_expression assignation_operator expression 
+      : postfix_expression assignation_operator expression {$$=$3;}
       | postfix_expression assignation_operator function
       | postfix_expression assignation_operator object
-      | conditional_expression
+      | conditional_expression {$$=$1;}
       ;
 
 assignation_operator
@@ -141,43 +152,43 @@ assignation_operator
       ;
 
 conditional_expression
-      : logical_expression_or_or
+      : logical_expression_or_or {$$=$1;}
       | logical_expression_or_or '?' expression ':' conditional_expression
       ;
 
 logical_expression_or_or
-      : logical_expression_and_and
+      : logical_expression_and_and {$$=$1;}
       | logical_expression_or_or OR_OR logical_expression_and_and
       ;
 
 logical_expression_and_and
-      : logical_expression_or
+      : logical_expression_or {$$=$1;}
       | logical_expression_and_and AND_AND logical_expression_or
       ;
 
 logical_expression_or
-      : logical_expression_xor
+      : logical_expression_xor {$$=$1;}
       | logical_expression_or OR logical_expression_xor
       ;
 
 logical_expression_xor
-      : logical_expression_and
+      : logical_expression_and {$$=$1;}
       | logical_expression_xor XOR logical_expression_and
       ;
 
 logical_expression_and
-      : equality_expression
+      : equality_expression {$$=$1;}
       | logical_expression_and AND equality_expression
       ;
 
 equality_expression
-      : relational_expression
+      : relational_expression {$$=$1;}
       | equality_expression EQU_EQU relational_expression
       | equality_expression NOT_EQU relational_expression
       ;
 
 relational_expression
-      : shifting_expression
+      : shifting_expression {$$=$1;}
       | relational_expression GT shifting_expression
       | relational_expression GE shifting_expression
       | relational_expression LT shifting_expression
@@ -185,29 +196,29 @@ relational_expression
       ;
 
 shifting_expression
-      : additive_expression
+      : additive_expression {$$=$1;}
       | shifting_expression SHR additive_expression
       | shifting_expression SHL additive_expression
       ;
 
 additive_expression
       : multiplicative_expression
-      | additive_expression PLU multiplicative_expression
-      | additive_expression MIN multiplicative_expression
+      | additive_expression PLU multiplicative_expression {$$=$1 + $3;}
+      | additive_expression MIN multiplicative_expression {$$=$1 - $3;}
       ;
 
 multiplicative_expression
-      : unary_expression
-      | multiplicative_expression TIM unary_expression
-      | multiplicative_expression DIV unary_expression
-      | multiplicative_expression MOD unary_expression
+      : unary_expression {$$=$1;}
+      | multiplicative_expression TIM unary_expression {$$=$1 * $3;}
+      | multiplicative_expression DIV unary_expression {$$=$1 / $3;}
+      | multiplicative_expression MOD unary_expression {$$=$1 % $3;}
       ;
 
 unary_expression
-      : postfix_expression
-      | unary_operator unary_expression
-      | PLU_PLU unary_expression
-      | MIN_MIN unary_expression
+      : postfix_expression {$$=$1;}
+      | unary_operator unary_expression {$$=0;}
+      | PLU_PLU unary_expression {$$=0;}
+      | MIN_MIN unary_expression {$$=0;}
       ;
 
 unary_operator
@@ -218,11 +229,11 @@ unary_operator
       ;
 
 postfix_expression
-      : atomic_expression
-      | object_construction_expression
-      | postfix_expression '[' expression ']'
-      | postfix_expression '(' ')'
-      | postfix_expression '(' expression_list ')'
+      : atomic_expression {$$=$1;}
+      | object_construction_expression {$$=0;}
+      | postfix_expression '[' expression ']' {$$=0;}
+      | postfix_expression '(' ')' {$$=0;}
+      | postfix_expression '(' expression_list ')' {$$=0;}
       | postfix_expression DOT ID 
       | postfix_expression PLU_PLU
       | postfix_expression MIN_MIN
@@ -234,14 +245,35 @@ object_construction_expression
       ;      
 
 atomic_expression
-      : ID 
-      | QUOTE
-      | INTEGER
-      | REAL 
-      | TRUE
-      | FALSE
-      | '(' expression ')'
-      | '[' expression_list ']'
+      : ID {
+            if (isInitialized($<string>1))
+            {
+                  $$=*((int*)variableList[getVariableIndex($<string>1)].value);
+            }
+            else
+            {
+                  char error[100];
+                  strcpy(error,"can't use unintialized variable: ");
+                  strcat(error,$<string>1);
+                  yyerror(error);
+            }
+            }
+      | QUOTE {
+            $$=0;
+            }
+      | INTEGER {
+            $$=$<integer>1;
+            }
+      | REAL {
+            $$=0;
+            }
+      | TRUE {
+            $$=0;
+            }
+      | FALSE { $$=0;
+            }
+      | '(' expression ')' {$$=$2;}
+      | '[' expression_list ']' {$$=0;}
       ;
 
 /* Flow control*/
@@ -321,13 +353,13 @@ iteration_instruction
 /* User defined objects */
 
 object_definition
-      : declarator EQU  '{' '}'
-      | declarator EQU  '{' object_field_list '}'
+      : OBJECT ID EQU  '{' '}'
+      | OBJECT ID EQU  '{' object_field_list '}'
       ;
 
 object 
-      : '{' '}'
-      | '{' object_field_list '}'
+      : OBJECT '{' '}'
+      | OBJECT '{' object_field_list '}'
 
 object_field_list
       : object_field_list ',' object_field
@@ -353,8 +385,8 @@ object_value
 /* User defined functions */
 
 function_declaration 
-      : declarator EQU FUNCTION '(' expression_list ')'
-      | declarator EQU FUNCTION '('  ')'
+      : declarator EQU FUNCTION '(' expression_list ')' { printf("%s\n",$1); variableList[getVariableIndex($1)].function=1;}
+      | declarator EQU FUNCTION '('  ')' {variableList[getVariableIndex($1)].function=1;}
       ;
 
 function_definition
