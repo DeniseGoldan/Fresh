@@ -7,7 +7,9 @@
 
 
 int numberOfDeclaredVariables = 0;
+int numberOfDeclaredFunctions = 0;
 char printBuffer[5000];
+char errorBuffer[5000];
 
 struct Variable
 {
@@ -18,29 +20,23 @@ struct Variable
     int constant;
 };
 
-struct Variable variableList[100];
-
-int isReservedWord(const char *nume)
+struct Function
 {
-    if (0 == strcmp(nume, "if")) { return 1; }
-    if (0 == strcmp(nume, "else")) { return 1; }
-    if (0 == strcmp(nume, "switch")) { return 1; }
-    if (0 == strcmp(nume, "case")) { return 1; }
-    if (0 == strcmp(nume, "default")) { return 1; }
-    if (0 == strcmp(nume, "for")) { return 1; }
-    if (0 == strcmp(nume, "do")) { return 1; }
-    if (0 == strcmp(nume, "while")) { return 1; }
-    if (0 == strcmp(nume, "break")) { return 1; }
-    if (0 == strcmp(nume, "continue")) { return 1; }
-    if (0 == strcmp(nume, "constant")) { return 1; }
-    if (0 == strcmp(nume, "variable")) { return 1; }
-    if (0 == strcmp(nume, "function")) { return 1; }
-    if (0 == strcmp(nume, "print")) { return 1; }
-    if (0 == strcmp(nume, "max")) { return 1; }
-    if (0 == strcmp(nume, "gcd")) { return 1; }
-    if (0 == strcmp(nume, "return")) { return 1; }
+    char id[255];
+    char returnType[255];
+    int defined;
+};
 
-    return 0;
+struct Variable variableList[100];
+struct Function functionList[100];
+
+void addToFunctionList(const char* id,const char* type)
+{
+    strcpy(functionList[numberOfDeclaredFunctions].id,id);
+    strcpy(functionList[numberOfDeclaredFunctions].returnType,type);
+    functionList[numberOfDeclaredFunctions].defined=0;
+
+    numberOfDeclaredFunctions++;
 }
 
 void addToVariableList(const char* id,const char* type,int constant)
@@ -67,7 +63,21 @@ int isDeclared(const char *id)
     return 0;
 }
 
-int printVariableList()
+int isDeclaredFunction(const char *id)
+{
+
+    int i;
+    for (i = 0; i < numberOfDeclaredFunctions; i++)
+    {
+        if (0 == strcmp(id, functionList[i].id))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void printVariableList()
 {
     int i=0;
     for (i=0; i < numberOfDeclaredVariables; ++i)
@@ -78,6 +88,15 @@ int printVariableList()
 
         if (variableList[i].initialized==1)
         {
+            if (strcmp(variableList[i].type,"int")==0)
+                printf("VALUE: %d\n",*(int*)variableList[i].value);
+            else if (strcmp(variableList[i].type,"double")==0)
+                printf("VALUE: %d\n",*(int*)variableList[i].value);
+            else if (strcmp(variableList[i].type,"string")==0)
+                printf("VALUE: %s\n",(char*)variableList[i].value);
+            else if (strcmp(variableList[i].type,"bool")==0)
+                printf("VALUE: %s\n",(char*)variableList[i].value);
+            else   
                 printf("VALUE: initialized \n");
         }
         else 
@@ -94,8 +113,27 @@ int printVariableList()
             printf("CONSTANT: no \n");
         }
         printf("------------------------------\n");
+    }
+}
 
+void printFunctionList()
+{
+    int i=0;
+    for (i=0; i < numberOfDeclaredFunctions; ++i)
+    {
+        printf("---------NEW FUNCTION---------\n");
+        printf("ID: %s \n",functionList[i].id);
+        printf("RETURN TYPE: %s \n",functionList[i].returnType);
 
+        if (functionList[i].defined==1)
+        {
+                printf("Defined\n");
+        }
+        else 
+        {
+            printf("Not defined\n");
+        }
+        printf("------------------------------\n");
     }
 }
 
@@ -129,21 +167,90 @@ int getVariableIndex(const char *id)
     return -1;
 }
 
-void print(const char* id)
+int getFunctionIndex(const char* id)
 {
     int i;
-    for (i = 0; i < numberOfDeclaredVariables; i++)
-    {
-        if (0 == strcmp(id, variableList[i].id))
+    for (i = 0; i < numberOfDeclaredFunctions; i++)
+     {
+        if (0 == strcmp(id, functionList[i].id)) 
         {
-            if (isInitialized(id))
-            {
-                char temp[10];
-                //sprintf(temp, "%d\n", variableList[i].value);
-                strcat(printBuffer, temp);
-            }
+            return i;
         }
     }
+    return -1;
+}
+
+void print(int value)
+{
+    char temp[20];
+    sprintf(temp, "%d\n", value);
+    strcat(printBuffer, temp);
+}
+
+char* notDeclaredFunctionError(char* id)
+{
+    char error[100];
+    strcpy(error,"Function not declared:");
+    strcat(error,id);
+
+    return strdup(error);
+}
+
+char* notDeclaredError(char* id)
+{
+    char error[100];
+    strcpy(error,"Variable not declared:");
+    strcat(error,id);
+
+    return strdup(error);
+}
+
+char* invalidTypeError(char* id,char* type)
+{
+    char error[100];
+    strcpy(error,"Invalid type:");
+    strcat(error,id);
+    strcat(error,"Not an ");
+    strcat(error,type);
+    
+    return strdup(error);
+}
+
+char* alreadyDeclaredError(char* id)
+{
+    char error[100];
+    strcpy(error,"Variable already declared:");
+    strcat(error,id);
+
+    return strdup(error);
+}
+
+char* alreadyDeclaredFunctionError(char* id)
+{
+    char error[100];
+    strcpy(error,"Function already declared:");
+    strcat(error,id);
+
+    return strdup(error);
+}
+
+
+char* notInitializedError(char* id)
+{
+    char error[100];
+    strcpy(error,"Variable not initialized:");
+    strcat(error,id);
+
+    return strdup(error);
+}
+
+char* notDefinedFunctionError(char* id)
+{
+    char error[100];
+    strcpy(error,"Function not defined yet:");
+    strcat(error,id);
+
+    return strdup(error);
 }
 
 int gcd(int a, int b)

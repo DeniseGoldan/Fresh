@@ -18,18 +18,18 @@ int yyerror(const char * s);
       double real;
 }
 
-%token MAX GCD
+%token MAX GCD PRINT
 %token QUOTE ID REAL INTEGER TRUE FALSE COMMENT STR INT DOUBLE
 %token VAR CONST FUNCTION RETURN 
 %token IF ELSE SWITCH CASE DEFAULT WHILE FOR DO BREAK CONTINUE
 %token OBJECT STRUCTURE BOOL
 
 %type<string> variable_type
-%type<string> str_declarator
+%type<string> str_declarator str_expression expression
 %type<integer> postfix_expression shifting_expression 
 %type<integer> additive_expression multiplicative_expression unary_expression
 %type<integer> atomic_expression logical_expression_or_or logical_expression_and_and int_expression
-%type<integer> expression library_call logical_expression_xor logical_expression_and equality_expression relational_expression
+%type<integer> library_call logical_expression_xor logical_expression_and equality_expression relational_expression
 %type<integer> conditional_expression atomic_bool
 
 %start start_program
@@ -52,10 +52,13 @@ int yyerror(const char * s);
 %nonassoc NEQU_UNAR NOT_UNAR
 %nonassoc '(' ')'
 
-
 %%
 
-start_program : instruction_list {printVariableList();}
+start_program : instruction_list 
+              {
+                  printFunctionList(); 
+                  printf("%s",printBuffer);
+              }
               ;
 
 instruction_list 
@@ -66,38 +69,49 @@ instruction_list
 instruction
       : declaration ';'
       | str_declaration ';'
+      | assignation ';'
       | expression ';'
       | flow_control
       | function_declaration ';'
-      | function_definition ';'
+      | function_definition
       | object_definition ';'
       | DELETE ID ';'
       | COMMENT
+      | print
       ;
 
 str_declaration
       : str_declarator
-      | str_declarator EQU str_expression
       ;
 
 str_declarator
-      : STR ID { if (isDeclared($<string>2))
-                                    yyerror("Already declared!");
-                              addToVariableList($<string>2,"string",0);
-                              $$=$<string>2;
-                        }
-      | CONST STR ID { if (isDeclared($<string>3))
-                                    yyerror("Already declared!");
-                              addToVariableList($<string>3,"string",0);
-                              $$=$<string>2;
-                        }
+      : STR ID 
+      { 
+            if (isDeclared($<string>2))
+                  yyerror("Already declared!");
+            addToVariableList($<string>2,"string",0);
+      }
+      | CONST STR ID 
+      { 
+            if (isDeclared($<string>3))
+                  yyerror("Already declared!");
+            addToVariableList($<string>3,"string",0);
+      }
       ;
 
 str_expression 
       : QUOTE
+      {
+            $$=$<string>1;
+      }
       | QUOTE PLU QUOTE
+      {
+            $$=$<string>1;
+      }
       | QUOTE TIM INTEGER
-      | INTEGER TIM QUOTE
+      {
+            $$=$<string>1;
+      }
       ;
 
 /* Declaratii */
@@ -106,18 +120,23 @@ declaration
       { 
             if (isDeclared($<string>2))
             {
-                  char error[100];
-                  strcpy(error,"Already declared:");
-                  strcat(error,$<string>2);
-                  yyerror(error);
+                  yyerror(alreadyDeclaredError($<string>2));
             }
-            addToVariableList($<string>2,$1,0);
+            else
+            {
+                  addToVariableList($<string>2,$1,0);
+            }
       }
       | CONST variable_type ID 
       { 
-            if (isDeclared($<string>3))
-                  yyerror("Already declared!");
-            addToVariableList($<string>3,$2,1);
+            if (isDeclared($<string>2))
+            {
+                  yyerror(alreadyDeclaredError($<string>2));
+            }
+            else
+            {
+                  addToVariableList($<string>2,$2,1);
+            }
       }
       ;
 
@@ -129,12 +148,23 @@ variable_type
       ;
 
 /* Expressions */
-expression_list
-      : expression_list ',' expression
-      | expression
+
+expression 
+      : int_expression 
+      {
+            $$="integer";
+      }
+      | conditional_expression 
+      {
+            $$="conditional";
+      }
+      | str_expression 
+      {
+            $$="string";
+      }
       ;
 
-expression
+assignation
       : ID assignation_operator int_expression 
       {
             if (isDeclared($<string>1))
@@ -142,10 +172,7 @@ expression
                   int index=getVariableIndex($<string>1);
                   if (strcmp(variableList[index].type,"int")!=0)
                   {
-                        char error[100];
-                        strcpy(error,"Not int type:");
-                        strcat(error,$<string>1);
-                        yyerror(error);
+                        yyerror(invalidTypeError($<string>1,"int"));
                   }
                   else
                   {
@@ -156,10 +183,7 @@ expression
             }
             else
             {
-                  char error[100];
-                  strcpy(error,"Not declared:");
-                  strcat(error,$<string>1);
-                  yyerror(error);
+                  yyerror(notDeclaredError($<string>1));
             }
       }
       | ID assignation_operator library_call 
@@ -173,10 +197,7 @@ expression
             }
             else
             {
-                  char error[100];
-                  strcpy(error,"Not declared:");
-                  strcat(error,$<string>1);
-                  yyerror(error);
+                  yyerror(notDeclaredError($<string>1));
             }
       }
       | ID assignation_operator NEW ID 
@@ -186,10 +207,7 @@ expression
                   int index=getVariableIndex($<string>4);
                   if (strcmp(variableList[index].type,"structure")!=0)
                   {
-                        char error[100];
-                        strcpy(error,"Not structure type:");
-                        strcat(error,$<string>1);
-                        yyerror(error);
+                        yyerror(invalidTypeError($<string>1,"structure"));
                   }
                   else
                   {
@@ -199,10 +217,7 @@ expression
             }
             else
             {
-                  char error[100];
-                  strcpy(error,"Not declared:");
-                  strcat(error,$<string>1);
-                  yyerror(error);
+                  yyerror(notDeclaredError($<string>1));
             }
       }
       | ID assignation_operator conditional_expression
@@ -212,10 +227,7 @@ expression
                   int index=getVariableIndex($<string>1);
                   if (strcmp(variableList[index].type,"bool")!=0)
                   {
-                        char error[100];
-                        strcpy(error,"Not bool type:");
-                        strcat(error,$<string>1);
-                        yyerror(error);
+                        yyerror(invalidTypeError($<string>1,"bool"));
                   }
                   else
                   {
@@ -226,10 +238,28 @@ expression
             }
             else
             {
-                  char error[100];
-                  strcpy(error,"Not declared:");
-                  strcat(error,$<string>1);
-                  yyerror(error);
+                  yyerror(notDeclaredError($<string>1));
+            }
+      }
+      | ID assignation_operator str_expression
+      {
+            if (isDeclared($<string>1))
+            {
+                  int index=getVariableIndex($<string>1);
+                  if (strcmp(variableList[index].type,"string")!=0)
+                  {
+                        yyerror(invalidTypeError($<string>1,"string"));
+                  }
+                  else
+                  {
+                        variableList[index].initialized=1;
+                        variableList[index].value=(char*)malloc(sizeof(char)*strlen($<string>3));
+                        strcpy(((char*)(variableList[index].value)),$<string>3);
+                  }
+            }
+            else
+            {
+                  yyerror(notDeclaredError($<string>1));
             }
       }
       ;
@@ -319,9 +349,6 @@ unary_expression
 
 postfix_expression
       : atomic_expression {$$=$1;}
-      | postfix_expression '[' expression ']' {$$=0;}
-      | postfix_expression '(' ')' {$$=0;}
-      | postfix_expression '(' expression_list ')' {$$=0;}
       | postfix_expression DOT ID 
       | postfix_expression PLU_PLU
       | postfix_expression MIN_MIN
@@ -330,17 +357,31 @@ postfix_expression
 atomic_expression
       : ID 
       {
-            if (isInitialized($<string>1))
+            if (isDeclared($<string>1))
             {
-                  $$=*((int*)variableList[getVariableIndex($<string>1)].value);
+                  int index=getVariableIndex($<string>1);
+                  if (strcmp(variableList[index].type,"int")!=0)
+                  {
+                        yyerror(invalidTypeError($<string>1,"int"));
+                  }
+                  else
+                  {
+                        if (isInitialized($<string>1))
+                        {
+                              $$=*((int*)variableList[getVariableIndex($<string>1)].value);
+                        }
+                        else
+                        {
+                              yyerror(notInitializedError($<string>1));
+                        }
+                  }
             }
             else
-            {
-                  char error[100];
-                  strcpy(error,"can't use unintialized variable: ");
-                  strcat(error,$<string>1);
-                  yyerror(error);
+             {
+                  yyerror(notDeclaredError($<string>1));
             }
+
+            
       }
       | INTEGER 
       {
@@ -350,13 +391,24 @@ atomic_expression
       {
             $$=$<real>1;
       }
-      | '(' expression ')' 
+      | ID '(' expression ')' 
       {
-            $$=$2;
-      }
-      | '[' expression_list ']' 
-      {
-            $$=0;
+            if (isDeclaredFunction($<string>1))
+            {
+                  int index = getFunctionIndex($<string>1);
+                  if (functionList[index].defined==0)
+                  {
+                       yyerror(notDefinedFunctionError($<string>1));
+                  }
+                  else
+                  {
+                        $$=0;
+                  }
+            }
+            else
+            {
+                  yyerror(notDeclaredFunctionError($<string>1));
+            }
       }
       ;
 
@@ -440,24 +492,24 @@ object_definition
       { 
             if (isDeclared($<string>2))
             {
-                  char error[100];
-                  strcpy(error,"Already declared:");
-                  strcat(error,$<string>2);
-                  yyerror(error);
+                 yyerror(alreadyDeclaredError($<string>2));
             }
-            addToVariableList($<string>2,"structure",0);
+            else
+            {
+                  addToVariableList($<string>2,"structure",0);
+            }
       }
       | STRUCTURE ID  '{' object_field_list '}' 
-                              { 
-                              if (isDeclared($<string>2))
-                              {
-                                    char error[100];
-                                    strcpy(error,"Already declared:");
-                                    strcat(error,$<string>2);
-                                    yyerror(error);
-                              }
-                              addToVariableList($<string>2,"structure",0);
-                              }
+      { 
+            if (isDeclared($<string>2))
+            {
+                  yyerror(alreadyDeclaredError($<string>2));
+            }
+            else
+            {
+                  addToVariableList($<string>2,"structure",0);
+            }
+      }
       ;
 
 object_field_list
@@ -481,13 +533,55 @@ parameter_list_declaration : variable_type ',' parameter_list_declaration
 
 
 function_declaration 
-      : FUNCTION declaration '(' parameter_list_declaration ')' { }
-      | FUNCTION declaration '('  ')' {}
+      : FUNCTION variable_type ID '(' parameter_list_declaration ')'
+      {
+            if (isDeclaredFunction($<string>3))
+            {
+                  yyerror(alreadyDeclaredFunctionError($<string>2));
+            }
+            else
+            {
+                  addToFunctionList($<string>3,$2);
+            }
+      }
+      | FUNCTION variable_type ID '('  ')'
+      {
+            if (isDeclaredFunction($<string>3))
+            {
+                  yyerror(alreadyDeclaredFunctionError($<string>2));
+            }
+            else
+            {
+                  addToFunctionList($<string>3,$2);
+            }
+      }
       ;
 
 function_definition
-      : FUNCTION declaration '(' parameter_list_definition ')' function_body
-      | FUNCTION declaration '('  ')'  function_body
+      : FUNCTION variable_type ID '(' parameter_list_definition ')' function_body
+      {
+            if (isDeclaredFunction($<string>3))
+            {
+                  yyerror(alreadyDeclaredFunctionError($<string>2));
+            }
+            else
+            {
+                  addToFunctionList($<string>3,$2);
+                  functionList[getFunctionIndex($<string>3)].defined=1;
+            }
+      }
+      | FUNCTION variable_type ID '('  ')'  function_body
+      {
+            if (isDeclaredFunction($<string>3))
+            {
+                  yyerror(alreadyDeclaredFunctionError($<string>2));
+            }
+            else
+            {
+                  addToFunctionList($<string>3,$2);
+                  functionList[getFunctionIndex($<string>3)].defined=1;
+            }
+      }
       ;
 
 function_body
@@ -518,11 +612,16 @@ library_call : MAX '(' int_expression ',' int_expression ')' {$$=max($3,$5);}
         | GCD '(' int_expression ',' int_expression ')' {$$=gcd($3,$5);}
         ;
 
+print : PRINT '(' int_expression ')'
+      {
+            print($3);
+      }
+
 
 %%
 int yyerror(const char * s) 
 {
-  printf("Error: %s at line: %d \n",s, yylineno);
+  printf("Error %s at line: %d \n",s, yylineno);
   exit(1);
 }
 

@@ -67,15 +67,17 @@
 "return" { return RETURN; }
 "structure" { return STRUCTURE; }
 "object" {return OBJECT;}
-"max"     {return MAX;}
-"gcd" {return GCD;}
+
+"max"     	{return MAX;}
+"gcd" 		{return GCD;}
+"print"		{return PRINT;}
 
 "bool" {return BOOL;}
 
 \/\/[^\r\n]*[\r\n] { yylineno++; return COMMENT; }
 [0-9]+ {yylval.integer = atoi(yytext); return INTEGER;}
 [0-9]+[\.]?[0-9]* { yylval.real = atoi(yytext); return REAL;}
-(\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') {return QUOTE; }
+(\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') { yylval.string = strdup(yytext); return QUOTE; }
 
 "const" { return CONST; } 
 "var" {return VAR; }
