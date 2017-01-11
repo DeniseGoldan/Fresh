@@ -65,7 +65,12 @@
 
 "function" { return FUNCTION; }
 "return" { return RETURN; }
-"object" { return OBJECT; }
+"structure" { return STRUCTURE; }
+"object" {return OBJECT;}
+"max"     {return MAX;}
+"gcd" {return GCD;}
+
+"bool" {return BOOL;}
 
 \/\/[^\r\n]*[\r\n] { yylineno++; return COMMENT; }
 [0-9]+ {yylval.integer = atoi(yytext); return INTEGER;}

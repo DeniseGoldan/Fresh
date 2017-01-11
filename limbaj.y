@@ -18,18 +18,19 @@ int yyerror(const char * s);
       double real;
 }
 
+%token MAX GCD
 %token QUOTE ID REAL INTEGER TRUE FALSE COMMENT STR INT DOUBLE
 %token VAR CONST FUNCTION RETURN 
 %token IF ELSE SWITCH CASE DEFAULT WHILE FOR DO BREAK CONTINUE
-%token OBJECT
+%token OBJECT STRUCTURE BOOL
 
 %type<string> variable_type
-%type<string> declarator
 %type<string> str_declarator
 %type<integer> postfix_expression shifting_expression 
-%type<integer>additive_expression multiplicative_expression unary_expression
-%type<integer> atomic_expression conditional_expression logical_expression_or_or logical_expression_and_and logical_expression_or
-%type<integer> expression logical_expression_xor logical_expression_and equality_expression relational_expression
+%type<integer> additive_expression multiplicative_expression unary_expression
+%type<integer> atomic_expression logical_expression_or_or logical_expression_and_and int_expression
+%type<integer> expression library_call logical_expression_xor logical_expression_and equality_expression relational_expression
+%type<integer> conditional_expression atomic_bool
 
 %start start_program
 
@@ -74,7 +75,6 @@ instruction
       | COMMENT
       ;
 
-
 str_declaration
       : str_declarator
       | str_declarator EQU str_expression
@@ -102,31 +102,30 @@ str_expression
 
 /* Declaratii */
 declaration
-      : declarator
-      | declarator EQU expression {
-                                    int index=getVariableIndex($1);
-                                    variableList[index].initialized=1;
-                                    variableList[index].value=(int*)malloc(sizeof(int));
-                                    *((int*)(variableList[index].value))=$3;
-                                    }
-      ;
-
-declarator
-      : variable_type ID { if (isDeclared($<string>2))
-                                    yyerror("Already declared!");
-                              addToVariableList($<string>2,$1,0);
-                              $$=$<string>2;
-                        }
-      | CONST variable_type ID { if (isDeclared($<string>3))
-                                    yyerror("Already declared!");
-                              addToVariableList($<string>3,$2,1);
-                              $$=$<string>3;
-                        }
+      : variable_type ID 
+      { 
+            if (isDeclared($<string>2))
+            {
+                  char error[100];
+                  strcpy(error,"Already declared:");
+                  strcat(error,$<string>2);
+                  yyerror(error);
+            }
+            addToVariableList($<string>2,$1,0);
+      }
+      | CONST variable_type ID 
+      { 
+            if (isDeclared($<string>3))
+                  yyerror("Already declared!");
+            addToVariableList($<string>3,$2,1);
+      }
       ;
 
 variable_type
       : INT       {$$="int";}
       | DOUBLE    {$$="double";}
+      | BOOL      {$$="bool";}
+      | OBJECT    {$$="object";}
       ;
 
 /* Expressions */
@@ -136,10 +135,103 @@ expression_list
       ;
 
 expression
-      : postfix_expression assignation_operator expression {$$=$3;}
-      | postfix_expression assignation_operator function
-      | postfix_expression assignation_operator object
-      | conditional_expression {$$=$1;}
+      : ID assignation_operator int_expression 
+      {
+            if (isDeclared($<string>1))
+            {
+                  int index=getVariableIndex($<string>1);
+                  if (strcmp(variableList[index].type,"int")!=0)
+                  {
+                        char error[100];
+                        strcpy(error,"Not int type:");
+                        strcat(error,$<string>1);
+                        yyerror(error);
+                  }
+                  else
+                  {
+                        variableList[index].initialized=1;
+                        variableList[index].value=(int*)malloc(sizeof(int));
+                        *((int*)(variableList[index].value))=$3;
+                  }
+            }
+            else
+            {
+                  char error[100];
+                  strcpy(error,"Not declared:");
+                  strcat(error,$<string>1);
+                  yyerror(error);
+            }
+      }
+      | ID assignation_operator library_call 
+      {
+            if (isDeclared($<string>1))
+            {
+                  int index=getVariableIndex($<string>1);
+                  variableList[index].initialized=1;
+                  variableList[index].value=(int*)malloc(sizeof(int));
+                  *((int*)(variableList[index].value))=$3;
+            }
+            else
+            {
+                  char error[100];
+                  strcpy(error,"Not declared:");
+                  strcat(error,$<string>1);
+                  yyerror(error);
+            }
+      }
+      | ID assignation_operator NEW ID 
+      {
+            if (isDeclared($<string>1))
+            {
+                  int index=getVariableIndex($<string>4);
+                  if (strcmp(variableList[index].type,"structure")!=0)
+                  {
+                        char error[100];
+                        strcpy(error,"Not structure type:");
+                        strcat(error,$<string>1);
+                        yyerror(error);
+                  }
+                  else
+                  {
+                        int index1=getVariableIndex($<string>1);
+                        variableList[index1].initialized=1;
+                  }
+            }
+            else
+            {
+                  char error[100];
+                  strcpy(error,"Not declared:");
+                  strcat(error,$<string>1);
+                  yyerror(error);
+            }
+      }
+      | ID assignation_operator conditional_expression
+      {
+            if (isDeclared($<string>1))
+            {
+                  int index=getVariableIndex($<string>1);
+                  if (strcmp(variableList[index].type,"bool")!=0)
+                  {
+                        char error[100];
+                        strcpy(error,"Not bool type:");
+                        strcat(error,$<string>1);
+                        yyerror(error);
+                  }
+                  else
+                  {
+                        variableList[index].initialized=1;
+                        variableList[index].value=(int*)malloc(sizeof(int));
+                        *((int*)(variableList[index].value))=$3;
+                  }
+            }
+            else
+            {
+                  char error[100];
+                  strcpy(error,"Not declared:");
+                  strcat(error,$<string>1);
+                  yyerror(error);
+            }
+      }
       ;
 
 assignation_operator
@@ -153,7 +245,7 @@ assignation_operator
 
 conditional_expression
       : logical_expression_or_or {$$=$1;}
-      | logical_expression_or_or '?' expression ':' conditional_expression
+      | logical_expression_or_or '?' expression ':' conditional_expression {$$=$1;}
       ;
 
 logical_expression_or_or
@@ -162,23 +254,8 @@ logical_expression_or_or
       ;
 
 logical_expression_and_and
-      : logical_expression_or {$$=$1;}
-      | logical_expression_and_and AND_AND logical_expression_or
-      ;
-
-logical_expression_or
-      : logical_expression_xor {$$=$1;}
-      | logical_expression_or OR logical_expression_xor
-      ;
-
-logical_expression_xor
-      : logical_expression_and {$$=$1;}
-      | logical_expression_xor XOR logical_expression_and
-      ;
-
-logical_expression_and
       : equality_expression {$$=$1;}
-      | logical_expression_and AND equality_expression
+      | logical_expression_and_and AND_AND equality_expression
       ;
 
 equality_expression
@@ -188,11 +265,31 @@ equality_expression
       ;
 
 relational_expression
+      : atomic_bool
+      | relational_expression GT atomic_bool
+      | relational_expression GE atomic_bool
+      | relational_expression LT atomic_bool
+      | relational_expression LE atomic_bool
+      ;
+
+atomic_bool
+      : TRUE {$$=0;}
+      | FALSE {$$=1;}
+      ;
+
+int_expression
+      : logical_expression_xor
+      | int_expression OR logical_expression_xor
+      ;
+
+logical_expression_xor
+      : logical_expression_and {$$=$1;}
+      | logical_expression_xor XOR logical_expression_and
+      ;
+
+logical_expression_and
       : shifting_expression {$$=$1;}
-      | relational_expression GT shifting_expression
-      | relational_expression GE shifting_expression
-      | relational_expression LT shifting_expression
-      | relational_expression LE shifting_expression
+      | logical_expression_and AND shifting_expression
       ;
 
 shifting_expression
@@ -216,36 +313,23 @@ multiplicative_expression
 
 unary_expression
       : postfix_expression {$$=$1;}
-      | unary_operator unary_expression {$$=0;}
       | PLU_PLU unary_expression {$$=0;}
       | MIN_MIN unary_expression {$$=0;}
       ;
 
-unary_operator
-      : NEQU_UNAR 
-      | NOT_UNAR
-      | MIN
-      | PLU 
-      ;
-
 postfix_expression
       : atomic_expression {$$=$1;}
-      | object_construction_expression {$$=0;}
       | postfix_expression '[' expression ']' {$$=0;}
       | postfix_expression '(' ')' {$$=0;}
       | postfix_expression '(' expression_list ')' {$$=0;}
       | postfix_expression DOT ID 
       | postfix_expression PLU_PLU
       | postfix_expression MIN_MIN
-      ;
-
-object_construction_expression
-      : NEW ID '(' expression_list ')'
-      | NEW ID '(' ')'
       ;      
 
 atomic_expression
-      : ID {
+      : ID 
+      {
             if (isInitialized($<string>1))
             {
                   $$=*((int*)variableList[getVariableIndex($<string>1)].value);
@@ -257,23 +341,23 @@ atomic_expression
                   strcat(error,$<string>1);
                   yyerror(error);
             }
-            }
-      | QUOTE {
-            $$=0;
-            }
-      | INTEGER {
+      }
+      | INTEGER 
+      {
             $$=$<integer>1;
-            }
-      | REAL {
+      }
+      | REAL 
+      {
+            $$=$<real>1;
+      }
+      | '(' expression ')' 
+      {
+            $$=$2;
+      }
+      | '[' expression_list ']' 
+      {
             $$=0;
-            }
-      | TRUE {
-            $$=0;
-            }
-      | FALSE { $$=0;
-            }
-      | '(' expression ')' {$$=$2;}
-      | '[' expression_list ']' {$$=0;}
+      }
       ;
 
 /* Flow control*/
@@ -285,9 +369,9 @@ flow_control
 
 /* Flow control : selections */
 selection_statement
-      : IF '(' expression ')' '{' flow_control_instruction_list '}' 
-      | IF '(' expression ')' '{' flow_control_instruction_list '}' ELSE '{' flow_control_instruction_list '}'
-      | SWITCH '(' expression ')' '{' switch_instruction_list '}'
+      : IF '(' conditional_expression ')' '{' flow_control_instruction_list '}' 
+      | IF '(' conditional_expression ')' '{' flow_control_instruction_list '}' ELSE '{' flow_control_instruction_list '}'
+      | SWITCH '(' int_expression ')' '{' switch_instruction_list '}'
       ;
 
 flow_control_instruction_list
@@ -322,10 +406,9 @@ flow_control_instruction_list_break
 
 /* Flow control : iterations */
 iteration_statement
-      : WHILE '(' expression ')' '{' iteration_instruction_list '}' 
-      | DO '{' iteration_instruction_list '}' WHILE '(' expression ')' ';'
+      : WHILE '(' conditional_expression ')' '{' iteration_instruction_list '}' 
+      | DO '{' iteration_instruction_list '}' WHILE '(' conditional_expression ')' ';'
       | FOR '(' for_instruction_list ';' for_instruction_list ';' for_instruction_list ')' '{' iteration_instruction_list '}'
-      | FOR '(' variable_type ID IN expression ')' '{' iteration_instruction_list '}'
       ;
 
 for_instruction_list
@@ -353,13 +436,29 @@ iteration_instruction
 /* User defined objects */
 
 object_definition
-      : OBJECT ID EQU  '{' '}'
-      | OBJECT ID EQU  '{' object_field_list '}'
+      : STRUCTURE ID '{' '}' 
+      { 
+            if (isDeclared($<string>2))
+            {
+                  char error[100];
+                  strcpy(error,"Already declared:");
+                  strcat(error,$<string>2);
+                  yyerror(error);
+            }
+            addToVariableList($<string>2,"structure",0);
+      }
+      | STRUCTURE ID  '{' object_field_list '}' 
+                              { 
+                              if (isDeclared($<string>2))
+                              {
+                                    char error[100];
+                                    strcpy(error,"Already declared:");
+                                    strcat(error,$<string>2);
+                                    yyerror(error);
+                              }
+                              addToVariableList($<string>2,"structure",0);
+                              }
       ;
-
-object 
-      : OBJECT '{' '}'
-      | OBJECT '{' object_field_list '}'
 
 object_field_list
       : object_field_list ',' object_field
@@ -367,37 +466,29 @@ object_field_list
       ;
 
 object_field
-      : ID ':' object_value
-      | COMMENT
-      ;
-
-object_value
-      : object
-      | QUOTE
-      | INTEGER
-      | REAL
-      | TRUE
-      | FALSE
-      | '[' expression_list ']'
-      | COMMENT
+      : declaration
       ;
 
 /* User defined functions */
 
+parameter_list_definition: declaration ',' parameter_list_definition
+            | declaration
+            ;
+
+parameter_list_declaration : variable_type ',' parameter_list_declaration
+                        | variable_type
+                        ;
+
+
 function_declaration 
-      : declarator EQU FUNCTION '(' expression_list ')' { printf("%s\n",$1); variableList[getVariableIndex($1)].function=1;}
-      | declarator EQU FUNCTION '('  ')' {variableList[getVariableIndex($1)].function=1;}
+      : FUNCTION declaration '(' parameter_list_declaration ')' { }
+      | FUNCTION declaration '('  ')' {}
       ;
 
 function_definition
-      : declarator EQU FUNCTION '(' expression_list ')' function_body
-      | declarator EQU FUNCTION '('  ')'  function_body
+      : FUNCTION declaration '(' parameter_list_definition ')' function_body
+      | FUNCTION declaration '('  ')'  function_body
       ;
-
-function
-      : FUNCTION '(' expression_list ')' function_body
-      | FUNCTION '('  ')'  function_body
-      ;     
 
 function_body
       : '{' '}'  
@@ -422,6 +513,10 @@ return
       : RETURN expression
       | RETURN
       ;
+
+library_call : MAX '(' int_expression ',' int_expression ')' {$$=max($3,$5);}
+        | GCD '(' int_expression ',' int_expression ')' {$$=gcd($3,$5);}
+        ;
 
 
 %%

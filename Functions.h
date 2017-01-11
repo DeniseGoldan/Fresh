@@ -16,7 +16,6 @@ struct Variable
     void* value;
     int initialized;
     int constant;
-    int function;
 };
 
 struct Variable variableList[100];
@@ -50,7 +49,6 @@ void addToVariableList(const char* id,const char* type,int constant)
     strcpy(variableList[numberOfDeclaredVariables].type,type);
     variableList[numberOfDeclaredVariables].constant=constant;
     variableList[numberOfDeclaredVariables].initialized=0;
-    variableList[numberOfDeclaredVariables].function=0;
 
     numberOfDeclaredVariables++;
 }
@@ -78,12 +76,9 @@ int printVariableList()
         printf("ID: %s \n",variableList[i].id);
         printf("TYPE: %s \n",variableList[i].type);
 
-        if (NULL != variableList[i].value)
+        if (variableList[i].initialized==1)
         {
-            if (strcmp(variableList[i].type,"int")==0)
-            {
-                printf("VALUE: %d \n",*(int*)(variableList[i].value));
-            }
+                printf("VALUE: initialized \n");
         }
         else 
         {
@@ -111,7 +106,7 @@ int isInitialized(const char *id)
     {
         if (0 == strcmp(id, variableList[i].id))
         {
-            if (variableList[i].value!=NULL)
+            if (variableList[i].value!=NULL || variableList[i].initialized==1)
             {
                 return 1;
             }
