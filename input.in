@@ -1,93 +1,105 @@
-// comment
-var a = 2;
-var b = 3 * 4 / (5 - 2);
-const var c = ~1 -(-1) +1 * (-3 + 4);
-const var d = a = b *= 1 * (2 + 3) / 4 == true && true;
+int a;
+a = 22;
+int b;
+b = 2*3-4;
+int table[];
 
-// selections
-a > b ?  (((printf(a)))) : printf(b);
+const int myConstant = 10000;
 
-if ( x ==  121212 || a >= b + 5 && (x < 2 ||  (((((x - 3 > 33))))) || y < 5 + z)) 
+str prenume;
+prenume = "Maria";
+str nume;
+nume = "Ciresaru";
+
+bool isStudent;
+isStudent = true;
+bool hasAJob;
+
+
+// SELECTION
+
+false ?  true : true;
+
+const int x = 10;
+if ( true ) 
 {
-	print(sum(a+b, 2));
-} else 
+	print(gcd(a+b, 2));
+} 
+else 
 {
-    print (sum(a-b, ((((2))))));
+    print (max(2,7));
 }
 
+if ( a>2 )
+{
+    print(1+2);
+}
+
+int random_number;
+random_number = 1;
 switch (random_number) 
 {
 	case 1: 
-		max(1,3);
 		break;
 	case 2:
+
 	case 3:
-		min(22,-22);
+		int beta;
+        beta = max(22,22);
+        break;
 	default:
-		gcd(33,55);
-		// ana are mere
+		int alfa;
+        alfa = 1;
+        print(alfa);
 }
 
-// iterations
-while ( a <= b && 22 > 3 + a) 
+// ITERATION
+while ( a <= b ) 
 {
-	a++;
-	var gcd = gcd(b+4, a);
+	b=a++;
+	int result;
+    result = gcd(20, 1+2);
+    break;
 }
 
+int contor;
+contor = 0;
 do 
 {
-	var i = 2;
-    i++;
-	var b = min_between_3(x+5, f(y+3) + 5, s);
-	i -= min_between_3(1,2,3);
-} while ( i <= 100);
+    contor += 1;
+} while (contor <= 100);
 
-for (var i=0; i<=n; i++)
+int j;
+for (j=0; j<30; j=j+2)
 {
-	print(i);
+    if (j > 10 )
+    {
+        int aaa;
+    }
+    continue;
+	print(contor);
 }
 
-// Declaring and defining functions
-var function_with_four_param = function(var1, var2, var222, var3);
+function int simple ();
 
-var function_with_three_param = function(var1, var2, var3) 
+function int creation (int firstParam, int secondParam) 
 { 
-	b *= c *= d;
-	// ana are mere
-    for (var i=0; i<=n; i++) 
+    int k;
+	for (k=0; k<=10; k=k+2) 
     {
-	    print(i);
+	    print(k);
     }
-	// Apelare de functii
-	var sum = sum(sum(a+b), sum(c+d));
-	return sum(sum(a+b), sum(c+d));
+
+	return 3;
+}
+
+structure StudentInformation
+{
+    int age,
+    bool hasScholarship,
+    double examScore
 };
 
-// User defined objects
-var lalala = {
-	field_1 : 222222,
-	field_2 : 3, 
-	field_3 : true,
-	field_4 : false,
-	field_5 : 6666666,
-	field_6 : {
-		field_a : {
-			// obiect gol
-		}
-	},
-	field_7 : {
-		// obiect gol
-	},
-	field_8 : [1, "ana", [1, 2, 3]]
-};
+object newStudent;
+newStudent=new StudentInformation;
 
-var noua_mea_variabila = new numar();
-
-// Strings
-
-str ana = "Ana are mere";
-str banana = "Banananna";
-str florica = "Ana are mereeeee" + " si florica are nuiele";
-str florica = "Ana are mereeeee" * 10;
-str florica = 10 * "Ana are mereeeee";

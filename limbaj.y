@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
-#include "Functions.h"
+#include "Utility.h"
+#include "Library.h"
 
 extern FILE* yyin;
 extern char* yytext;
@@ -8,6 +9,7 @@ extern int yylineno;
 
 int yylex();
 int yyerror(const char * s);
+int errors=0;
 
 %}
 
@@ -16,6 +18,7 @@ int yyerror(const char * s);
       int integer;
       char* string;
       double real;
+      struct Expression *expr;
 }
 
 %token MAX GCD PRINT
@@ -25,11 +28,12 @@ int yyerror(const char * s);
 %token OBJECT STRUCTURE BOOL
 
 %type<string> variable_type
-%type<string> str_declarator str_expression expression
-%type<integer> postfix_expression shifting_expression 
-%type<integer> additive_expression multiplicative_expression unary_expression
+%type<string> str_declarator str_expression
+%type<integer> postfix_expression
+%type<expr> expression
+%type<integer> additive_expression multiplicative_expression
 %type<integer> atomic_expression logical_expression_or_or logical_expression_and_and int_expression
-%type<integer> library_call logical_expression_xor logical_expression_and equality_expression relational_expression
+%type<integer> library_call equality_expression relational_expression
 %type<integer> conditional_expression atomic_bool
 
 %start start_program
@@ -37,9 +41,7 @@ int yyerror(const char * s);
 %right EQU PLU_EQU MIN_EQU TIM_EQU DIV_EQU MOD_EQU
 %left OR_OR
 %left AND_AND
-%left OR
-%left XOR
-%left AND
+%left OR AND XOR
 %left NOT_EQU EQU_EQU
 %left IN GT LT LE GE
 %left SHR SHL
@@ -49,15 +51,14 @@ int yyerror(const char * s);
 %left PLU_PLU MIN_MIN
 %nonassoc NEW
 %left DOT
-%nonassoc NEQU_UNAR NOT_UNAR
 %nonassoc '(' ')'
 
 %%
 
 start_program : instruction_list 
               {
-                  printFunctionList(); 
-                  printf("%s",printBuffer);
+                  if (errors==0)
+                        printf("%s",printBuffer);
               }
               ;
 
@@ -91,11 +92,19 @@ str_declarator
                   yyerror("Already declared!");
             addToVariableList($<string>2,"string",0);
       }
-      | CONST STR ID 
-      { 
-            if (isDeclared($<string>3))
-                  yyerror("Already declared!");
-            addToVariableList($<string>3,"string",0);
+      | CONST STR ID EQU str_expression
+      {
+            if (!isDeclared($<string>3))
+            {
+                  addToVariableList($<string>3,"string",1);
+                  int index=getVariableIndex($<string>3);
+                  variableList[index].value=$5;
+                  variableList[index].initialized=1;
+            }
+            else
+            {
+                  yyerror(notDeclaredError($<string>3));
+            }
       }
       ;
 
@@ -117,7 +126,7 @@ str_expression
 /* Declaratii */
 declaration
       : variable_type ID 
-      { 
+      {
             if (isDeclared($<string>2))
             {
                   yyerror(alreadyDeclaredError($<string>2));
@@ -127,7 +136,7 @@ declaration
                   addToVariableList($<string>2,$1,0);
             }
       }
-      | CONST variable_type ID 
+      | CONST variable_type ID EQU expression
       { 
             if (isDeclared($<string>2))
             {
@@ -135,7 +144,28 @@ declaration
             }
             else
             {
-                  addToVariableList($<string>2,$2,1);
+                  if (strcmp($2,$5->type)==0)
+                  {
+                        addToVariableList($<string>3,$2,1);
+                        int index=getVariableIndex($<string>3);
+                        variableList[index].value=$5->value;
+                        variableList[index].initialized=1;
+                  }
+                  else
+                  {
+                        yyerror("Not appropiate type\n");
+                  }  
+            }
+      }
+      | variable_type ID '[' ']'
+      {
+            if (isDeclared($<string>2))
+            {
+                  yyerror(alreadyDeclaredError($<string>2));
+            }
+            else
+            {
+                  addToVariableList($<string>2,"table",0);
             }
       }
       ;
@@ -150,17 +180,29 @@ variable_type
 /* Expressions */
 
 expression 
-      : int_expression 
+      : int_expression
       {
-            $$="integer";
+            struct Expression *e = (struct Expression*)malloc(sizeof(struct Expression));
+            strcpy(e->type,"int");
+            e->value=(int*)malloc(sizeof(int));
+            *(int*)e->value=$1;
+            $$=e;
       }
-      | conditional_expression 
+      | conditional_expression
       {
-            $$="conditional";
+            struct Expression *e = (struct Expression*)malloc(sizeof(struct Expression));
+            strcpy(e->type,"bool");
+            e->value=(int*)malloc(sizeof(int));
+            *(int*)e->value=$1;
+            $$=e;
       }
-      | str_expression 
+      | str_expression
       {
-            $$="string";
+            struct Expression *e = (struct Expression*)malloc(sizeof(struct Expression));
+            strcpy(e->type,"string");
+            e->value=(int*)malloc(sizeof(char)*strlen($1));
+            e->value=$1;
+            $$=e;
       }
       ;
 
@@ -176,24 +218,17 @@ assignation
                   }
                   else
                   {
-                        variableList[index].initialized=1;
-                        variableList[index].value=(int*)malloc(sizeof(int));
-                        *((int*)(variableList[index].value))=$3;
+                        if (variableList[index].constant==1)
+                        {
+                               yyerror(declaredConstant($<string>1));            
+                        }
+                        else
+                        {
+                              variableList[index].initialized=1;
+                              variableList[index].value=(int*)malloc(sizeof(int));
+                              *((int*)(variableList[index].value))=$3;
+                        }
                   }
-            }
-            else
-            {
-                  yyerror(notDeclaredError($<string>1));
-            }
-      }
-      | ID assignation_operator library_call 
-      {
-            if (isDeclared($<string>1))
-            {
-                  int index=getVariableIndex($<string>1);
-                  variableList[index].initialized=1;
-                  variableList[index].value=(int*)malloc(sizeof(int));
-                  *((int*)(variableList[index].value))=$3;
             }
             else
             {
@@ -242,25 +277,7 @@ assignation
             }
       }
       | ID assignation_operator str_expression
-      {
-            if (isDeclared($<string>1))
-            {
-                  int index=getVariableIndex($<string>1);
-                  if (strcmp(variableList[index].type,"string")!=0)
-                  {
-                        yyerror(invalidTypeError($<string>1,"string"));
-                  }
-                  else
-                  {
-                        variableList[index].initialized=1;
-                        variableList[index].value=(char*)malloc(sizeof(char)*strlen($<string>3));
-                        strcpy(((char*)(variableList[index].value)),$<string>3);
-                  }
-            }
-            else
-            {
-                  yyerror(notDeclaredError($<string>1));
-            }
+      { 
       }
       ;
 
@@ -285,7 +302,13 @@ logical_expression_or_or
 
 logical_expression_and_and
       : equality_expression {$$=$1;}
+      | atomic_bool
       | logical_expression_and_and AND_AND equality_expression
+      ;
+
+atomic_bool
+      : TRUE {$$=0;}
+      | FALSE {$$=1;}
       ;
 
 equality_expression
@@ -295,37 +318,15 @@ equality_expression
       ;
 
 relational_expression
-      : atomic_bool
-      | relational_expression GT atomic_bool
-      | relational_expression GE atomic_bool
-      | relational_expression LT atomic_bool
-      | relational_expression LE atomic_bool
-      ;
-
-atomic_bool
-      : TRUE {$$=0;}
-      | FALSE {$$=1;}
+      : atomic_expression GT atomic_expression {$$=0;}
+      | atomic_expression GE atomic_expression {$$=0;}
+      | atomic_expression LT atomic_expression {$$=0;}
+      | atomic_expression LE atomic_expression {$$=0;}
       ;
 
 int_expression
-      : logical_expression_xor
-      | int_expression OR logical_expression_xor
-      ;
-
-logical_expression_xor
-      : logical_expression_and {$$=$1;}
-      | logical_expression_xor XOR logical_expression_and
-      ;
-
-logical_expression_and
-      : shifting_expression {$$=$1;}
-      | logical_expression_and AND shifting_expression
-      ;
-
-shifting_expression
-      : additive_expression {$$=$1;}
-      | shifting_expression SHR additive_expression
-      | shifting_expression SHL additive_expression
+      : additive_expression
+      | int_expression OR additive_expression
       ;
 
 additive_expression
@@ -335,16 +336,10 @@ additive_expression
       ;
 
 multiplicative_expression
-      : unary_expression {$$=$1;}
-      | multiplicative_expression TIM unary_expression {$$=$1 * $3;}
-      | multiplicative_expression DIV unary_expression {$$=$1 / $3;}
-      | multiplicative_expression MOD unary_expression {$$=$1 % $3;}
-      ;
-
-unary_expression
       : postfix_expression {$$=$1;}
-      | PLU_PLU unary_expression {$$=0;}
-      | MIN_MIN unary_expression {$$=0;}
+      | multiplicative_expression TIM postfix_expression {$$=$1 * $3;}
+      | multiplicative_expression DIV postfix_expression {$$=$1 / $3;}
+      | multiplicative_expression MOD postfix_expression {$$=$1 % $3;}
       ;
 
 postfix_expression
@@ -368,6 +363,7 @@ atomic_expression
                   {
                         if (isInitialized($<string>1))
                         {
+
                               $$=*((int*)variableList[getVariableIndex($<string>1)].value);
                         }
                         else
@@ -380,8 +376,6 @@ atomic_expression
              {
                   yyerror(notDeclaredError($<string>1));
             }
-
-            
       }
       | INTEGER 
       {
@@ -410,6 +404,10 @@ atomic_expression
                   yyerror(notDeclaredFunctionError($<string>1));
             }
       }
+      | library_call
+      {
+            $$=$1;
+      }
       ;
 
 /* Flow control*/
@@ -432,7 +430,8 @@ flow_control_instruction_list
       ;
 
 flow_control_instruction
-      : expression ';'
+      : assignation ';'
+      | print
       | declaration ';'
       | flow_control
       | DELETE ID ';'
@@ -453,14 +452,14 @@ flow_control_instruction_list_break
       : flow_control_instruction_list BREAK ';'
       | flow_control_instruction_list
       | BREAK ';'
-      | /* empty */
+      | 
       ;
 
 /* Flow control : iterations */
 iteration_statement
       : WHILE '(' conditional_expression ')' '{' iteration_instruction_list '}' 
       | DO '{' iteration_instruction_list '}' WHILE '(' conditional_expression ')' ';'
-      | FOR '(' for_instruction_list ';' for_instruction_list ';' for_instruction_list ')' '{' iteration_instruction_list '}'
+      | FOR '(' for_instruction_list ';' conditional_expression ';' for_instruction_list ')' '{' iteration_instruction_list '}'
       ;
 
 for_instruction_list
@@ -470,8 +469,9 @@ for_instruction_list
 
 for_instruction
       : declaration
-      | expression 
-      | /* empty */
+      | assignation 
+      | COMMENT
+      |
       ;
 
 iteration_instruction_list
@@ -608,11 +608,31 @@ return
       | RETURN
       ;
 
-library_call : MAX '(' int_expression ',' int_expression ')' {$$=max($3,$5);}
-        | GCD '(' int_expression ',' int_expression ')' {$$=gcd($3,$5);}
+library_call : MAX '(' expression ',' expression ')' 
+             {
+                  if (strcmp($3->type,"int") || strcmp($5->type,"int"))
+                  {
+                        yyerror(invalidTypeError("One parameter ","int"));
+                  }
+                  else
+                  {
+                        $$=max(*(int*)($3->value),*(int*)($5->value));
+                  }
+             }
+             | GCD '(' expression ',' expression ')' 
+             {
+                  if (strcmp($3->type,"int") || strcmp($5->type,"int"))
+                  {
+                        yyerror(invalidTypeError("One parameter ","int"));
+                  }
+                  else
+                  {
+                        $$=gcd(*(int*)($3->value),*(int*)($5->value));
+                  }
+             }
         ;
 
-print : PRINT '(' int_expression ')'
+print : PRINT '(' int_expression ')' ';'
       {
             print($3);
       }
@@ -621,8 +641,8 @@ print : PRINT '(' int_expression ')'
 %%
 int yyerror(const char * s) 
 {
-  printf("Error %s at line: %d \n",s, yylineno);
-  exit(1);
+      errors=1;
+      printf("Error %s at line: %d \n",s, yylineno);
 }
 
 

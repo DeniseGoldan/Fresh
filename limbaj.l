@@ -60,9 +60,6 @@
 "--" { return MIN_MIN; }
 "++" { return PLU_PLU; }
 
-"~" { return NEQU_UNAR; } 
-"!" { return NOT_UNAR; }
-
 "function" { return FUNCTION; }
 "return" { return RETURN; }
 "structure" { return STRUCTURE; }
@@ -75,8 +72,8 @@
 "bool" {return BOOL;}
 
 \/\/[^\r\n]*[\r\n] { yylineno++; return COMMENT; }
-[0-9]+ {yylval.integer = atoi(yytext); return INTEGER;}
-[0-9]+[\.]?[0-9]* { yylval.real = atoi(yytext); return REAL;}
+0|[1-9][0-9]* {yylval.integer = atoi(yytext); return INTEGER;}
+(0|[1-9][0-9]*)[\.]?[0-9]* { yylval.real = atoi(yytext); return REAL;}
 (\"(\\.|[^\\"])*\")|(\'(\\.|[^\\'])*\') { yylval.string = strdup(yytext); return QUOTE; }
 
 "const" { return CONST; } 
